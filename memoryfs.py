@@ -876,14 +876,12 @@ class FileName():
             block = file_inode.RawBlocks.Get(block_number)
 
             # read data from the right position in the block
-
-            data.insert(i, block[read_start:read_end])
+            data.extend(block[read_start:read_end])
 
             # update offset, bytes written
             current_offset += read_end - read_start
             bytes_read += read_end - read_start
 
             logging.debug('Read: current_offset: ' + str(current_offset) + ' , bytes_read: ' + str(
-                bytes_read) + ' , count: ' + strr(count))
-        return data
-    # your code here
+                bytes_read) + ' , count: ' + str(count))
+        return bytearray(data)
