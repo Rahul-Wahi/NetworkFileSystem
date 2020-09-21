@@ -56,6 +56,16 @@ class FSShell():
             # Skip to the next block, back to while loop
             offset += BLOCK_SIZE
 
+    # implements cat (print file contents)
+    def cat(self, filename):
+        file_inode_number = self.FileObject.Lookup(filename, self.cwd)
+        bytearray = self.FileObject.Read(file_inode_number, 0, MAX_FILE_SIZE)
+
+        if bytearray == -1:
+            print("Error: Not a file\n")
+            return -1
+        print(bytearray.decode())
+
     def Interpreter(self):
         while (True):
             command = input("[cwd=" + str(self.cwd) + "]:")
