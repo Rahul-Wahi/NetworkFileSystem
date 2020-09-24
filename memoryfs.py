@@ -809,6 +809,10 @@ class FileName():
 
         return bytes_written
 
+    ## Reads data from a file, starting at offset
+    ## offset must be less than or equal to the file's size
+    ## count is number of bytes to read
+    ## returns the read bytearray
     def Read(self, file_inode_number, offset, count):
         logging.debug(
             "Read: file_inode_number: " + str(file_inode_number)
@@ -825,16 +829,12 @@ class FileName():
             logging.debug("Read: offset larger than file size " + str(file_inode.inode.size))
             return -1
 
-        if offset + count > MAX_FILE_SIZE:
-            logging.debug("Read: exceeds maximum file size: " + str(MAX_FILE_SIZE))
-            return -1
-
         # initialize variables used in the while loop
         current_offset = offset
         bytes_read = 0
         data = []
 
-        # this loop iterates through one or more blocks, ending when all data is written
+        # this loop iterates through one or more blocks, ending when all data is read
         while bytes_read < count:
 
             # block index corresponding to the current offset
@@ -878,7 +878,7 @@ class FileName():
             # read data from the right position in the block
             data.extend(block[read_start:read_end])
 
-            # update offset, bytes written
+            # update offset, bytes read
             current_offset += read_end - read_start
             bytes_read += read_end - read_start
 
