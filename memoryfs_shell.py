@@ -70,6 +70,25 @@ class FSShell():
     def ln(self, target, linkname):
         self.FileObject.Link(target, linkname, self.cwd)
 
+    # implement mkdir (create new directory)
+    def mkdir(self, dirname):
+        # Find if there is an available inode
+        inode_position = self.FileObject.FindAvailableInode()
+        if inode_position == -1:
+            print("mkdir:cannot create directory: no free inode available")
+
+        # Find available slot in directory data block
+        fileentry_position = self.FileObject.FindAvailableFileEntry(self.cwd)
+        if fileentry_position == -1:
+            print("mkdir: cannot create directory: no entry available for another object")
+
+
+        # Ensure it's not a duplicate - if Lookup returns anything other than -1
+        if self.FileObject.Lookup(dirname, self.cwd) != -1:
+            print("mkdir: cannot create directory '" + dirname + "': already exists")
+
+        self.FileObject.Create(self.cwd, dirname, INODE_TYPE_DIR)
+
     
     def Interpreter(self):
         while (True):
@@ -91,11 +110,16 @@ class FSShell():
                 return
             elif splitcmd[0] == "ln":
                 if len(splitcmd) != 3:
-                    print("Error: ln requires three arguments")
+                    print("Error: ln requires two arguments")
                 else:
                     self.ln(splitcmd[1], splitcmd[2])
+            elif splitcmd[0] == "mkdir":
+                if len(splitcmd) != 2:
+                    print("Error: mkdir requires one argument")
+                else:
+                    self.mkdir(splitcmd[1])
             else:
-                print("command " + splitcmd[0] + "not valid.\n")
+                print("command " + splitcmd[0] + " not valid.\n")
 
 
 if __name__ == "__main__":
