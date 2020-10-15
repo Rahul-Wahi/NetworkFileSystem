@@ -50,8 +50,13 @@ class FSShell():
 
                     # Extract padded MAX_FILENAME string as a bytearray from data block for comparison
                     filestring = self.FileObject.HelperGetFilenameString(b, i)
-
-                    print(filestring.decode())
+                    file_inodenumber = self.FileObject.HelperGetFilenameInodeNumber(b, i)
+                    file_inodeobj = InodeNumber(self.FileObject.RawBlocks, file_inodenumber)
+                    file_inodeobj.InodeNumberToInode()
+                    if file_inodeobj.inode.type == INODE_TYPE_DIR:
+                        print("[" + str(file_inodeobj.inode.refcnt) + "]:" + filestring.decode() + "/")
+                    else:
+                        print("[" + str(file_inodeobj.inode.refcnt) + "]:" + filestring.decode())
 
             # Skip to the next block, back to while loop
             offset += BLOCK_SIZE

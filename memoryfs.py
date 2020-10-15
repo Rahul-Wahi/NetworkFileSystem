@@ -949,6 +949,7 @@ class FileName():
 
         self.InsertFilenameInodeNumber(cwd_inode, name, target_inodenumber)
         target_inode.inode.refcnt += 1
+        target_inode.StoreInode()
 
 
 
