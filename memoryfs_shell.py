@@ -66,6 +66,11 @@ class FSShell():
             return -1
         print(bytearray.decode())
 
+    # implement ln (creates a hard link of target with name 'linkname')
+    def ln(self, target, linkname):
+        self.FileObject.Link(target, linkname, self.cwd)
+
+    
     def Interpreter(self):
         while (True):
             command = input("[cwd=" + str(self.cwd) + "]:")
@@ -84,6 +89,11 @@ class FSShell():
                 self.ls()
             elif splitcmd[0] == "exit":
                 return
+            elif splitcmd[0] == "ln":
+                if len(splitcmd) != 3:
+                    print("Error: ln requires three arguments")
+                else:
+                    self.ln(splitcmd[1], splitcmd[2])
             else:
                 print("command " + splitcmd[0] + "not valid.\n")
 

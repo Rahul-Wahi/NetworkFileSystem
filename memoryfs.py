@@ -885,3 +885,71 @@ class FileName():
             logging.debug('Read: current_offset: ' + str(current_offset) + ' , bytes_read: ' + str(
                 bytes_read) + ' , count: ' + str(count))
         return bytearray(data)
+
+    ## Recuresively resolve the path
+    ## offset must be less than or equal to the file's size
+    ## count is number of bytes to read
+    ## returns the read bytearray
+    def PathToInodeNumber(self, path, dir):
+
+        # If seperator / comes at the end remove it
+        if path.endswith("/"):
+            path = path[:-1]
+
+        if self.IsPlainName(path):
+            return self.Lookup(path, dir)
+        else:
+            split_path = path.split("/", 1)
+            dir = self.Lookup(split_path[0], dir)
+            path = split_path[1]
+            return PathToInodeNumber(path, dir)
+
+
+    def IsPlainName(self, path):
+        return "/" not in path
+
+    def GeneralPathToInodeNumber(self, path, cwd):
+
+        #If seperator / comes at the end remove it
+        if path.endswith("/"):
+            path = path[:-1]
+
+        #If path becomes empty after removing /, then return the root inode number
+        if path == '':
+            return 0
+
+        #if path starts with / then start the search from root path
+        if path.startswith("/"):
+            path = path[1:]
+            return self.PathToInodeNumber(path, 0)
+        else:
+            return self.PathToInodeNumber(path, cwd)
+
+    def Link(self, target, name, cwd):
+
+        if self.Lookup(name, cwd) != -1:
+            print("ln:failed to create hard link '" + name + "': already exists")
+            return -1
+
+        target_inodenumber = self.GeneralPathToInodeNumber(target, cwd)
+
+        if target_inodenumber == -1:
+            print("ln:failed to access '" + target + "': No such file or directory")
+            return -1
+
+        target_inode = InodeNumber(self.RawBlocks, target_inodenumber)
+        target_inode.InodeNumberToInode()
+
+        if target_inode.inode.type != INODE_TYPE_FILE:
+            print("ln:failed '" + target + "': hard links only allowed for files")
+            return -1
+
+        cwd_inode = InodeNumber(self.RawBlocks, cwd)
+        cwd_inode.InodeNumberToInode()
+
+        self.InsertFilenameInodeNumber(cwd_inode, name, target_inodenumber)
+        target_inode.inode.refcnt += 1
+
+
+
+
