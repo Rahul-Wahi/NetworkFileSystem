@@ -736,7 +736,7 @@ class FileName():
             return -1
 
         if offset > file_inode.inode.size:
-            logging.debug("Write: offset larger than file size " + str(file_inode.inode.size))
+            logging.debug("Write: offset " + str(offset) + " larger than file size " + str(file_inode.inode.size))
             return -1
 
         if offset + len(data) > MAX_FILE_SIZE:

@@ -112,7 +112,29 @@ class FSShell():
 
         self.FileObject.Create(self.cwd, filename, INODE_TYPE_FILE)
 
-    
+    def append(self, filename, data):
+        file_inode_number = self.FileObject.Lookup(filename, self.cwd)
+
+        if file_inode_number == -1:
+            print("append:error: " + filename + " does not exist")
+
+        bytearray = self.FileObject.Read(file_inode_number, 0, MAX_FILE_SIZE)
+
+        if bytearray == -1:
+            print("append:error: Not a file\n")
+            return -1
+
+        offset = len(bytearray)
+        while offset > 0 and bytearray[offset - 1] == 0:
+            offset -= 1
+
+        data_bytearray = bytes(data, 'utf-8')
+        bytes_written = self.FileObject.Write(file_inode_number, offset, data_bytearray)
+
+        if bytes_written == -1:
+            print("append: can not append: space not available\n")
+            return -1
+
     def Interpreter(self):
         while (True):
             command = input("[cwd=" + str(self.cwd) + "]:")
@@ -146,6 +168,11 @@ class FSShell():
                     print("Error: create requires one argument")
                 else:
                     self.create(splitcmd[1])
+            elif splitcmd[0] == "append":
+                if len(splitcmd) != 3:
+                    print("Error: create requires two arguments")
+                else:
+                    self.append(splitcmd[1], splitcmd[2])
             else:
                 print("command " + splitcmd[0] + " not valid.\n")
 
