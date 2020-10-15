@@ -72,22 +72,40 @@ class FSShell():
 
     # implement mkdir (create new directory)
     def mkdir(self, dirname):
+        # Ensure it's not a duplicate - if Lookup returns anything other than -1
+        if self.FileObject.Lookup(dirname, self.cwd) != -1:
+            print("mkdir: cannot create directory '" + dirname + "': already exists")
+
         # Find if there is an available inode
         inode_position = self.FileObject.FindAvailableInode()
         if inode_position == -1:
-            print("mkdir:cannot create directory: no free inode available")
+            print("mkdir: cannot create directory: no free inode available")
 
         # Find available slot in directory data block
         fileentry_position = self.FileObject.FindAvailableFileEntry(self.cwd)
         if fileentry_position == -1:
             print("mkdir: cannot create directory: no entry available for another object")
 
+        self.FileObject.Create(self.cwd, dirname, INODE_TYPE_DIR)
+
+    # implement create (create new file)
+    def create(self, filename):
 
         # Ensure it's not a duplicate - if Lookup returns anything other than -1
-        if self.FileObject.Lookup(dirname, self.cwd) != -1:
-            print("mkdir: cannot create directory '" + dirname + "': already exists")
+        if self.FileObject.Lookup(filename, self.cwd) != -1:
+            print("create: cannot create file '" + filename + "': already exists")
 
-        self.FileObject.Create(self.cwd, dirname, INODE_TYPE_DIR)
+        # Find if there is an available inode
+        inode_position = self.FileObject.FindAvailableInode()
+        if inode_position == -1:
+            print("create: cannot create file: no free inode available")
+
+        # Find available slot in directory data block
+        fileentry_position = self.FileObject.FindAvailableFileEntry(self.cwd)
+        if fileentry_position == -1:
+            print("create: cannot create file: no entry available for another object")
+
+        self.FileObject.Create(self.cwd, filename, INODE_TYPE_FILE)
 
     
     def Interpreter(self):
@@ -118,6 +136,11 @@ class FSShell():
                     print("Error: mkdir requires one argument")
                 else:
                     self.mkdir(splitcmd[1])
+            elif splitcmd[0] == "create":
+                if len(splitcmd) != 2:
+                    print("Error: create requires one argument")
+                else:
+                    self.create(splitcmd[1])
             else:
                 print("command " + splitcmd[0] + " not valid.\n")
 
