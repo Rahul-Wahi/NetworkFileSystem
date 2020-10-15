@@ -15,7 +15,7 @@ class FSShell():
 
     # implements cd (change directory)
     def cd(self, dir):
-        i = self.FileObject.Lookup(dir, self.cwd)
+        i = self.FileObject.GeneralPathToInodeNumber(dir, self.cwd)
         if i == -1:
             print("Error: not found\n")
             return -1

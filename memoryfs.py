@@ -902,7 +902,7 @@ class FileName():
             split_path = path.split("/", 1)
             dir = self.Lookup(split_path[0], dir)
             path = split_path[1]
-            return PathToInodeNumber(path, dir)
+            return self.PathToInodeNumber(path, dir)
 
 
     def IsPlainName(self, path):
@@ -927,28 +927,44 @@ class FileName():
 
     def Link(self, target, name, cwd):
 
+        if len(name) > MAX_FILENAME:
+            print("ln: failed to create hard link,'" + name + "' file name exceeds maximum name size")
+            return -1
+
         if self.Lookup(name, cwd) != -1:
-            print("ln:failed to create hard link '" + name + "': already exists")
+            print("ln: failed to create hard link '" + name + "': already exists")
             return -1
 
         target_inodenumber = self.GeneralPathToInodeNumber(target, cwd)
 
         if target_inodenumber == -1:
-            print("ln:failed to access '" + target + "': No such file or directory")
+            print("ln: failed to access '" + target + "': No such file or directory")
             return -1
 
         target_inode = InodeNumber(self.RawBlocks, target_inodenumber)
         target_inode.InodeNumberToInode()
 
         if target_inode.inode.type != INODE_TYPE_FILE:
-            print("ln:failed '" + target + "': hard links only allowed for files")
+            print("ln: failed to create hard link '" + target + "': hard links only allowed for files")
             return -1
 
         cwd_inode = InodeNumber(self.RawBlocks, cwd)
         cwd_inode.InodeNumberToInode()
 
+        index = cwd_inode.inode.size
+
+        #check if there is room for entry
+        if index >= MAX_FILE_SIZE:
+            print('ln: failed to create hard link: no space for another entry in inode')
+            return -1
+
+
         self.InsertFilenameInodeNumber(cwd_inode, name, target_inodenumber)
+
+        #increase the reference count
         target_inode.inode.refcnt += 1
+
+        # store the updated node in raw storage
         target_inode.StoreInode()
 
 
