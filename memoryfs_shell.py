@@ -17,12 +17,12 @@ class FSShell():
     def cd(self, dir):
         i = self.FileObject.GeneralPathToInodeNumber(dir, self.cwd)
         if i == -1:
-            print("Error: not found\n")
+            print("cd: Error: " + dir + " not found\n")
             return -1
         inobj = InodeNumber(self.FileObject.RawBlocks, i)
         inobj.InodeNumberToInode()
         if inobj.inode.type != INODE_TYPE_DIR:
-            print("Error: not a directory\n")
+            print("cd: Error: " + dir + "not a directory\n")
             return -1
         self.cwd = i
 
@@ -63,11 +63,12 @@ class FSShell():
 
     # implements cat (print file contents)
     def cat(self, filename):
+        filename = self.stripSeperator(filename)
         file_inode_number = self.FileObject.Lookup(filename, self.cwd)
         bytearray = self.FileObject.Read(file_inode_number, 0, MAX_FILE_SIZE)
 
         if bytearray == -1:
-            print("Error: Not a file\n")
+            print("cat: Error: '" + filename + "' Not a file\n")
             return -1
         print(bytearray.decode())
 
@@ -77,51 +78,70 @@ class FSShell():
 
     # implement mkdir (create new directory)
     def mkdir(self, dirname):
+        dirname = self.stripSeperator(dirname)
+
+        if len(dirname) > MAX_FILENAME:
+            print("mkdir: cannot create directory: '" + dirname + "' file name exceeds maximum name size")
+            return -1
+
         # Ensure it's not a duplicate - if Lookup returns anything other than -1
         if self.FileObject.Lookup(dirname, self.cwd) != -1:
             print("mkdir: cannot create directory '" + dirname + "': already exists")
+            return -1
 
         # Find if there is an available inode
         inode_position = self.FileObject.FindAvailableInode()
         if inode_position == -1:
             print("mkdir: cannot create directory: no free inode available")
+            return -1
 
         # Find available slot in directory data block
         fileentry_position = self.FileObject.FindAvailableFileEntry(self.cwd)
         if fileentry_position == -1:
             print("mkdir: cannot create directory: no entry available for another object")
-
+            return -1
         self.FileObject.Create(self.cwd, dirname, INODE_TYPE_DIR)
 
     # implement create (create new file)
     def create(self, filename):
 
+        filename = self.stripSeperator(filename)
+
+        if len(filename) > MAX_FILENAME:
+            print("create: cannot create file: '" + filename + "' file name exceeds maximum name size")
+            return -1
+
         # Ensure it's not a duplicate - if Lookup returns anything other than -1
         if self.FileObject.Lookup(filename, self.cwd) != -1:
             print("create: cannot create file '" + filename + "': already exists")
+            return -1
 
         # Find if there is an available inode
         inode_position = self.FileObject.FindAvailableInode()
         if inode_position == -1:
             print("create: cannot create file: no free inode available")
+            return -1
 
         # Find available slot in directory data block
         fileentry_position = self.FileObject.FindAvailableFileEntry(self.cwd)
         if fileentry_position == -1:
             print("create: cannot create file: no entry available for another object")
+            return -1
 
         self.FileObject.Create(self.cwd, filename, INODE_TYPE_FILE)
 
     def append(self, filename, data):
+        filename = self.stripSeperator(filename)
         file_inode_number = self.FileObject.Lookup(filename, self.cwd)
 
         if file_inode_number == -1:
-            print("append:error: " + filename + " does not exist")
+            print("append: Error: " + filename + " does not exist")
+            return -1
 
         bytearray = self.FileObject.Read(file_inode_number, 0, MAX_FILE_SIZE)
 
         if bytearray == -1:
-            print("append:error: Not a file\n")
+            print("append: Error:" + filename + " not a file\n")
             return -1
 
         offset = len(bytearray)
@@ -134,6 +154,13 @@ class FSShell():
         if bytes_written == -1:
             print("append: can not append: space not available\n")
             return -1
+
+    #remove './' from start and '/' from end of the name
+    def stripSeperator(self, name):
+        if name[0] == '.' and name[1] == '/':
+            name = name[2:]
+
+        return name
 
     def Interpreter(self):
         while (True):
