@@ -139,15 +139,14 @@ class FSShell():
             print("append: Error: " + filename + " does not exist")
             return -1
 
-        bytearray = self.FileObject.Read(file_inode_number, 0, MAX_FILE_SIZE)
+        file_inode = InodeNumber(self.FileObject.RawBlocks, file_inode_number)
+        file_inode.InodeNumberToInode()
 
-        if bytearray == -1:
-            print("append: Error:" + filename + " not a file\n")
+        if file_inode.inode.type != INODE_TYPE_FILE:
+            print("append: Error: " + filename + " not a file")
             return -1
 
-        offset = len(bytearray)
-        while offset > 0 and bytearray[offset - 1] == 0:
-            offset -= 1
+        offset = file_inode.inode.size
 
         data_bytearray = bytes(data, 'utf-8')
         bytes_written = self.FileObject.Write(file_inode_number, offset, data_bytearray)
