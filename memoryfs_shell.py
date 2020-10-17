@@ -130,6 +130,7 @@ class FSShell():
 
         self.FileObject.Create(self.cwd, filename, INODE_TYPE_FILE)
 
+    # implement append (append string to the end of existing file)
     def append(self, filename, data):
         filename = self.stripSeperator(filename)
         file_inode_number = self.FileObject.Lookup(filename, self.cwd)
