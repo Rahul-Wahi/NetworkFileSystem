@@ -1,6 +1,6 @@
 import pickle, logging
 
-from memoryfs import *
+from memoryfs_client import *
 
 
 ## This class implements an interactive shell to navigate the file system
@@ -211,16 +211,16 @@ if __name__ == "__main__":
 
     # Replace with your UUID, encoded as a byte array
     UUID = b'\x12\x34\x56\x78'
-
+    server_url = 'http://localhost:8000'
     # Initialize file system data
     logging.info('Initializing data structures...')
-    RawBlocks = DiskBlocks()
+    RawBlocks = DiskBlocks(server_url)
     # Load blocks from dump file
-    RawBlocks.InitializeBlocks(False, UUID)
-
-    # Show file system information and contents of first few blocks
-    RawBlocks.PrintFSInfo()
-    RawBlocks.PrintBlocks("Initialized", 0, 16)
+    # RawBlocks.InitializeBlocks(False, UUID)
+    #
+    # # Show file system information and contents of first few blocks
+    # RawBlocks.PrintFSInfo()
+    # RawBlocks.PrintBlocks("Initialized", 0, 16)
 
     # Initialize FileObject inode
     FileObject = FileName(RawBlocks)
