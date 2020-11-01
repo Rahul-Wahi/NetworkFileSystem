@@ -1,6 +1,7 @@
 import xmlrpc.client
 import base64
-
+import threading
+import time
 import pickle, logging
 
 ##### File system constants
@@ -78,7 +79,6 @@ class DiskBlocks():
         # This class stores the raw block array
         self.server = xmlrpc.client.ServerProxy(server_url, allow_none=True, use_builtin_types=True)
 
-
     ## Put: interface to write a raw block of data to the block indexed by block number
     ## Blocks are padded with zeroes up to BLOCK_SIZE
 
@@ -96,6 +96,10 @@ class DiskBlocks():
 
         logging.debug('Get: ' + str(block_number))
         return bytearray(self.server.Get(block_number))
+
+    def ReadSetBlock(self, block_number, data):
+        logging.debug('ReadSetBlock: ' + str(block_number))
+        return bytearray(self.server.ReadSetBlock(block_number, data))
 
     ## Prints out file system information
 
@@ -338,6 +342,8 @@ class InodeNumber():
 class FileName():
     def __init__(self, RawBlocks):
         self.RawBlocks = RawBlocks
+        self.LOCKED = "LOCKED"
+        self.UNLOCKED = "UNLOCKED"
 
     ## This helper function extracts a file name string from a directory data block
     ## The index selects which file name entry to extract within the block - e.g. index 0 is the first file name, 1 second file name
@@ -382,8 +388,10 @@ class FileName():
             logging.error('InsertFilenameInodeNumber: not a directory inode: ' + str(insert_to.inode.type))
             quit()
 
+
         # We insert a new entry at the end of the existing table, so determine its position based on inode's size
         index = insert_to.inode.size
+
         if index >= MAX_FILE_SIZE:
             logging.error('InsertFilenameInodeNumber: no space for another entry in inode')
             quit()
@@ -894,8 +902,8 @@ class FileName():
             print('ln: failed to create hard link: no space for another entry in inode')
             return -1
 
-
         self.InsertFilenameInodeNumber(cwd_inode, name, target_inodenumber)
+
 
         #increase the reference count
         target_inode.inode.refcnt += 1
@@ -903,20 +911,13 @@ class FileName():
         # store the updated node in raw storage
         target_inode.StoreInode()
 
+    def ACQUIRE(self):
+        data = bytes(self.LOCKED, 'utf-8')
+        value = self.RawBlocks.ReadSetBlock(0, data)[0:len(self.LOCKED)].decode()
+        while value == self.LOCKED:
+            value = self.RawBlocks.ReadSetBlock(0, data)[0:len(self.LOCKED)].decode()
 
+    def RELEASE(self):
+        self.RawBlocks.ReadSetBlock(0, bytes(self.UNLOCKED, 'utf-8'))
 
-
-
-putdata1 = bytearray(b'\x12\x34\x56\x78')
-putdata2 = bytearray(b'\x9a\xbb\xde\xf0')
-
-# s = xmlrpc.client.ServerProxy('http://localhost:8000', use_builtin_types=True)
-# print(s.put("key1",putdata1))
-# print(s.put("key2",putdata2))
-# value1 = s.get("key1")
-# value2 = s.get("key2")
-# print(str(putdata1.hex()))
-# print(str(value1.hex()))
-# print(str(putdata2.hex()))
-# print(str(value2.hex()))
 

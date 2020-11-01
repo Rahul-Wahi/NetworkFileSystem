@@ -74,7 +74,9 @@ class FSShell():
 
     # implement ln (creates a hard link of target with name 'linkname')
     def ln(self, target, linkname):
+        self.FileObject.ACQUIRE()
         self.FileObject.Link(target, linkname, self.cwd)
+        self.FileObject.RELEASE()
 
     # implement mkdir (create new directory)
     def mkdir(self, dirname):
@@ -84,6 +86,7 @@ class FSShell():
             print("mkdir: cannot create directory: '" + dirname + "' file name exceeds maximum name size")
             return -1
 
+        #self.FileObject.ACQUIRE()
         # Ensure it's not a duplicate - if Lookup returns anything other than -1
         if self.FileObject.Lookup(dirname, self.cwd) != -1:
             print("mkdir: cannot create directory '" + dirname + "': already exists")
@@ -101,6 +104,7 @@ class FSShell():
             print("mkdir: cannot create directory: no entry available for another object")
             return -1
         self.FileObject.Create(self.cwd, dirname, INODE_TYPE_DIR)
+        #self.FileObject.RELEASE()
 
     # implement create (create new file)
     def create(self, filename):
@@ -111,6 +115,7 @@ class FSShell():
             print("create: cannot create file: '" + filename + "' file name exceeds maximum name size")
             return -1
 
+        self.FileObject.ACQUIRE()
         # Ensure it's not a duplicate - if Lookup returns anything other than -1
         if self.FileObject.Lookup(filename, self.cwd) != -1:
             print("create: cannot create file '" + filename + "': already exists")
@@ -129,6 +134,7 @@ class FSShell():
             return -1
 
         self.FileObject.Create(self.cwd, filename, INODE_TYPE_FILE)
+        self.FileObject.RELEASE()
 
     # implement append (append string to the end of existing file)
     def append(self, filename, data):
@@ -149,8 +155,10 @@ class FSShell():
         offset = file_inode.inode.size
 
         data_bytearray = bytes(data, 'utf-8')
-        bytes_written = self.FileObject.Write(file_inode_number, offset, data_bytearray)
 
+        self.FileObject.ACQUIRE()
+        bytes_written = self.FileObject.Write(file_inode_number, offset, data_bytearray)
+        self.FileObject.RELEASE()
         if bytes_written == -1:
             print("append: can not append: space not available\n")
             return -1

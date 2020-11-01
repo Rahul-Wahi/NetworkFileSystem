@@ -1,9 +1,10 @@
 from xmlrpc.server import SimpleXMLRPCServer
 from xmlrpc.server import SimpleXMLRPCRequestHandler
+import threading
 import xmlrpc.client
 import base64
 import pickle, logging
-kv = {}
+
 
 ##### File system constants
 
@@ -77,10 +78,22 @@ class DiskBlocks():
     def __init__(self):
         # This class stores the raw block array
         self.block = []
+        self.LOCKED = "LOCKED"
+        self.UNLOCKED = "UNLOCKED"
+        self.lock = threading.Lock()
         # Initialize raw blocks
         for i in range(0, TOTAL_NUM_BLOCKS):
             putdata = bytearray(BLOCK_SIZE)
             self.block.insert(i, putdata)
+
+    def ReadSetBlock(self, block_number, data):
+        self.lock.acquire()
+        try:
+            value = self.Get(block_number)
+            self.Put(block_number, data)
+        finally:
+            self.lock.release()
+            return value
 
     ## Put: interface to write a raw block of data to the block indexed by block number
     ## Blocks are padded with zeroes up to BLOCK_SIZE
@@ -213,27 +226,7 @@ class RequestHandler(SimpleXMLRPCRequestHandler):
 
 # Create server
 with SimpleXMLRPCServer(('localhost', 8000),
-                        requestHandler=RequestHandler) as server:
-    # def put(key, value):
-    #     #        print(type(value))
-    #     #        myba = bytearray(value)
-    #     #        print(str(value.hex()))
-    #     kv[key] = value
-    #     return 0
-    #
-    #
-    # server.register_function(put, 'put')
-    #
-    #
-    # def get(key):
-    #     if key in kv:
-    #         return kv[key]
-    #     else:
-    #         return -1
-    #
-    #
-    # server.register_function(get, 'get')
-    # Replace with your UUID, encoded as a byte array
+                        requestHandler=RequestHandler, allow_none=True) as server:
     UUID = b'\x12\x34\x56\x78'
     # Initialize file system data
     logging.info('Initializing data structures...')
