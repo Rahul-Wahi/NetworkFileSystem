@@ -85,9 +85,8 @@ class DiskBlocks():
     def Put(self, block_number, block_data):
         logging.debug(
             'Put: block number ' + str(block_number) + ' len ' + str(len(block_data)) + '\n' + str(block_data.hex()))
-        #return self.server.Put(block_number, xmlrpc.client.Binary(block_data))
+        # return self.server.Put(block_number, xmlrpc.client.Binary(block_data))
         return self.server.Put(block_number, bytes(block_data))
-
 
     ## Get: interface to read a raw block of data from block indexed by block number
     ## Equivalent to the textbook's BLOCK_NUMBER_TO_BLOCK(b)
@@ -101,8 +100,51 @@ class DiskBlocks():
         logging.debug('ReadSetBlock: ' + str(block_number))
         return bytearray(self.server.ReadSetBlock(block_number, data))
 
-    ## Prints out file system information
+    ## Serializes and saves block[] data structure to a disk file
+    def DumpToDisk(self, prefix):
+        filename = str(prefix.hex()) + "_BS_" + str(BLOCK_SIZE) + "_NB_" + str(TOTAL_NUM_BLOCKS) + "_IS_" + str(
+            INODE_SIZE) + "_MI_" + str(MAX_NUM_INODES) + ".dump"
+        logging.info("Dumping pickled blocks to file " + filename)
+        file = open(filename, 'wb')
+        pickle.dump(self.block, file)
+        file.close()
 
+    ## Loads block[] data structure from a disk file
+    def LoadFromDisk(self, prefix):
+        filename = str(prefix.hex()) + "_BS_" + str(BLOCK_SIZE) + "_NB_" + str(TOTAL_NUM_BLOCKS) + "_IS_" + str(
+            INODE_SIZE) + "_MI_" + str(MAX_NUM_INODES) + ".dump"
+        logging.info("Reading blocks from pickled file " + filename)
+        file = open(filename, 'rb')
+        block = pickle.load(file)
+        for i in range(0, TOTAL_NUM_BLOCKS):
+            self.Put(i, block[i])
+        file.close()
+
+    ## Initialize blocks, either from a clean slate (cleanslate == True), or from a pickled dump file with prefix
+
+    def InitializeBlocks(self, cleanslate, prefix):
+        if cleanslate:
+            # Block 0: No real boot code here, just write the given prefix
+            self.Put(0, prefix)
+
+            # Block 1: Superblock contains basic file system constants
+            # First, we write it as a list
+            superblock = [TOTAL_NUM_BLOCKS, BLOCK_SIZE, MAX_NUM_INODES, INODE_SIZE]
+            # Now we serialize it into a byte array
+            self.Put(1, pickle.dumps(superblock))
+
+            # Blocks 2-TOTAL_NUM_BLOCKS are initialized with zeroes
+            #   Free block bitmap: All blocks start free, so safe to initialize with zeroes
+            #   Inode table: zero indicates an invalid inode, so also safe to initialize with zeroes
+            #   Data blocks: safe to init with zeroes
+            zeroblock = bytearray(BLOCK_SIZE)
+            for i in range(FREEBITMAP_BLOCK_OFFSET, TOTAL_NUM_BLOCKS):
+                self.Put(i, zeroblock)
+        else:
+            self.LoadFromDisk(prefix)
+            return 1
+
+    ## Prints out file system information
     def PrintFSInfo(self):
         logging.info('#### File system information:')
         logging.info('Number of blocks          : ' + str(TOTAL_NUM_BLOCKS))
@@ -388,7 +430,6 @@ class FileName():
             logging.error('InsertFilenameInodeNumber: not a directory inode: ' + str(insert_to.inode.type))
             quit()
 
-
         # We insert a new entry at the end of the existing table, so determine its position based on inode's size
         index = insert_to.inode.size
 
@@ -431,6 +472,7 @@ class FileName():
         # Update and write data block with (filename,inode) mapping
         block[inode_start:inode_end] = inodenumber.to_bytes(INODE_NUMBER_DIRENTRY_SIZE, 'big')
         block[string_start:string_end] = bytearray(stringbyte.ljust(MAX_FILENAME, b'\x00'))
+
         self.RawBlocks.Put(block_number, block)
 
         # Increment size, and write inode
@@ -597,6 +639,7 @@ class FileName():
         # Obtain dir_inode_number_inode, ensure it is a directory
         dir_inode = InodeNumber(self.RawBlocks, dir)
         dir_inode.InodeNumberToInode()
+
         if dir_inode.inode.type != INODE_TYPE_DIR:
             logging.debug("Create: dir is not a directory")
             return -1
@@ -848,21 +891,20 @@ class FileName():
             path = split_path[1]
             return self.PathToInodeNumber(path, dir)
 
-
     def IsPlainName(self, path):
         return "/" not in path
 
     def GeneralPathToInodeNumber(self, path, cwd):
 
-        #If seperator / comes at the end remove it
+        # If seperator / comes at the end remove it
         if path.endswith("/"):
             path = path[:-1]
 
-        #If path becomes empty after removing /, then return the root inode number
+        # If path becomes empty after removing /, then return the root inode number
         if path == '':
             return 0
 
-        #if path starts with / then start the search from root path
+        # if path starts with / then start the search from root path
         if path.startswith("/"):
             path = path[1:]
             return self.PathToInodeNumber(path, 0)
@@ -897,15 +939,14 @@ class FileName():
 
         index = cwd_inode.inode.size
 
-        #check if there is room for entry
+        # check if there is room for entry
         if index >= MAX_FILE_SIZE:
             print('ln: failed to create hard link: no space for another entry in inode')
             return -1
 
         self.InsertFilenameInodeNumber(cwd_inode, name, target_inodenumber)
 
-
-        #increase the reference count
+        # increase the reference count
         target_inode.inode.refcnt += 1
 
         # store the updated node in raw storage
@@ -919,5 +960,3 @@ class FileName():
 
     def RELEASE(self):
         self.RawBlocks.ReadSetBlock(0, bytes(self.UNLOCKED, 'utf-8'))
-
-
