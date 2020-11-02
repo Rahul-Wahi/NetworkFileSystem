@@ -12,7 +12,9 @@ class FSShell():
         # we start in the root directory
         self.cwd = 0
         self.FileObject = file
-        self.FileObject.InitRootInode()
+        inode_position = self.FileObject.FindAvailableInode()
+        if inode_position == 0:
+            self.FileObject.InitRootInode()
 
     # implements cd (change directory)
     def cd(self, dir):
@@ -226,11 +228,11 @@ if __name__ == "__main__":
     logging.info('Initializing data structures...')
     RawBlocks = DiskBlocks(server_url)
     # Load blocks from dump file
-    RawBlocks.InitializeBlocks(True, UUID)
+    RawBlocks.InitializeBlocks(False, UUID)
     #
     # # Show file system information and contents of first few blocks
-    # RawBlocks.PrintFSInfo()
-    # RawBlocks.PrintBlocks("Initialized", 0, 16)
+    RawBlocks.PrintFSInfo()
+    RawBlocks.PrintBlocks("Initialized", 0, 16)
 
     # Initialize FileObject inode
     FileObject = FileName(RawBlocks)
