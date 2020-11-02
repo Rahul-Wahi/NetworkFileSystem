@@ -86,7 +86,7 @@ class FSShell():
             print("mkdir: cannot create directory: '" + dirname + "' file name exceeds maximum name size")
             return -1
 
-        #self.FileObject.ACQUIRE()
+        self.FileObject.ACQUIRE()
         # Ensure it's not a duplicate - if Lookup returns anything other than -1
         if self.FileObject.Lookup(dirname, self.cwd) != -1:
             print("mkdir: cannot create directory '" + dirname + "': already exists")
@@ -104,7 +104,7 @@ class FSShell():
             print("mkdir: cannot create directory: no entry available for another object")
             return -1
         self.FileObject.Create(self.cwd, dirname, INODE_TYPE_DIR)
-        #self.FileObject.RELEASE()
+        self.FileObject.RELEASE()
 
     # implement create (create new file)
     def create(self, filename):
@@ -138,6 +138,7 @@ class FSShell():
 
     # implement append (append string to the end of existing file)
     def append(self, filename, data):
+        self.FileObject.ACQUIRE()
         filename = self.stripSeperator(filename)
         file_inode_number = self.FileObject.Lookup(filename, self.cwd)
 
@@ -152,11 +153,11 @@ class FSShell():
             print("append: Error: " + filename + " not a file")
             return -1
 
+
         offset = file_inode.inode.size
 
         data_bytearray = bytes(data, 'utf-8')
 
-        self.FileObject.ACQUIRE()
         bytes_written = self.FileObject.Write(file_inode_number, offset, data_bytearray)
         self.FileObject.RELEASE()
         if bytes_written == -1:
