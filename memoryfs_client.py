@@ -86,7 +86,8 @@ class DiskBlocks():
         logging.debug(
             'Put: block number ' + str(block_number) + ' len ' + str(len(block_data)) + '\n' + str(block_data.hex()))
         # return self.server.Put(block_number, xmlrpc.client.Binary(block_data))
-        return self.server.Put(block_number, bytes(block_data))
+        #return self.server.Put(block_number, bytes(block_data))
+        return self.server.Put(block_number, block_data)
 
     ## Get: interface to read a raw block of data from block indexed by block number
     ## Equivalent to the textbook's BLOCK_NUMBER_TO_BLOCK(b)

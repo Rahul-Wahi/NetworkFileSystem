@@ -36,9 +36,7 @@ class DiskBlocks():
     def Put(self, block_number, block_data):
         if isinstance(block_data, xmlrpc.client.Binary):
             block_data = block_data.data
-        print(block_number)
-        print(" , ")
-        print(block_data)
+
         logging.debug(
             'Put: block number ' + str(block_number) + ' len ' + str(len(block_data)) + '\n' + str(
                 block_data.hex()))
