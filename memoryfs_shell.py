@@ -93,18 +93,21 @@ class FSShell():
         # Ensure it's not a duplicate - if Lookup returns anything other than -1
         if self.FileObject.Lookup(dirname, self.cwd) != -1:
             print("mkdir: cannot create directory '" + dirname + "': already exists")
+            self.FileObject.RELEASE()
             return -1
 
         # Find if there is an available inode
         inode_position = self.FileObject.FindAvailableInode()
         if inode_position == -1:
             print("mkdir: cannot create directory: no free inode available")
+            self.FileObject.RELEASE()
             return -1
 
         # Find available slot in directory data block
         fileentry_position = self.FileObject.FindAvailableFileEntry(self.cwd)
         if fileentry_position == -1:
             print("mkdir: cannot create directory: no entry available for another object")
+            self.FileObject.RELEASE()
             return -1
         self.FileObject.Create(self.cwd, dirname, INODE_TYPE_DIR)
         self.FileObject.RELEASE()
@@ -122,18 +125,21 @@ class FSShell():
         # Ensure it's not a duplicate - if Lookup returns anything other than -1
         if self.FileObject.Lookup(filename, self.cwd) != -1:
             print("create: cannot create file '" + filename + "': already exists")
+            self.FileObject.RELEASE()
             return -1
 
         # Find if there is an available inode
         inode_position = self.FileObject.FindAvailableInode()
         if inode_position == -1:
             print("create: cannot create file: no free inode available")
+            self.FileObject.RELEASE()
             return -1
 
         # Find available slot in directory data block
         fileentry_position = self.FileObject.FindAvailableFileEntry(self.cwd)
         if fileentry_position == -1:
             print("create: cannot create file: no entry available for another object")
+            self.FileObject.RELEASE()
             return -1
 
         self.FileObject.Create(self.cwd, filename, INODE_TYPE_FILE)
@@ -147,6 +153,7 @@ class FSShell():
 
         if file_inode_number == -1:
             print("append: Error: " + filename + " does not exist")
+            self.FileObject.RELEASE()
             return -1
 
         file_inode = InodeNumber(self.FileObject.RawBlocks, file_inode_number)
@@ -154,6 +161,7 @@ class FSShell():
 
         if file_inode.inode.type != INODE_TYPE_FILE:
             print("append: Error: " + filename + " not a file")
+            self.FileObject.RELEASE()
             return -1
 
 
