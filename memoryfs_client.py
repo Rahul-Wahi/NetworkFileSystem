@@ -74,20 +74,59 @@ INODE_TYPE_SYM = 3
 #### BLOCK LAYER
 
 class DiskBlocks():
-    def __init__(self, server_url):
+    def __init__(self, server_url_list):
+        # self.server = xmlrpc.client.ServerProxy(server_url, allow_none=True, use_builtin_types=True)
+        # This class connects the servers over rpc and provide blovk layer functionalities
+        self.servers = []
+        for server_url in server_url_list:
+            self.servers.append(xmlrpc.client.ServerProxy(server_url, allow_none=True, use_builtin_types=True))
 
-        # This class stores the raw block array
-        self.server = xmlrpc.client.ServerProxy(server_url, allow_none=True, use_builtin_types=True)
+    # Put: interface to write a raw block of data to the block indexed by physical_block number in server
 
-    ## Put: interface to write a raw block of data to the block indexed by block number
-    ## Blocks are padded with zeroes up to BLOCK_SIZE
+    def Put(self, server_number, physical_block_number, block_data):
+        logging.debug(
+            'Put: server_number ' + str(server_number) + ' block number ' + str(physical_block_number) + ' len ' + str(
+                len(block_data)) + '\n' + str(block_data.hex()))
+        try:
+            return self.servers[server_number].Put(physical_block_number, block_data)
+        except:
+            return -1
+
+    def Get(self, server_number, physical_block_number, block_data):
+        logging.debug(
+            'Get: server_number ' + str(server_number) + ' physical block number ' + str(physical_block_number))
+        try:
+            return self.servers[server_number].Get(block_number)
+        except:
+            return -1
 
     def Put(self, block_number, block_data):
         logging.debug(
             'Put: block number ' + str(block_number) + ' len ' + str(len(block_data)) + '\n' + str(block_data.hex()))
-        # return self.server.Put(block_number, xmlrpc.client.Binary(block_data))
-        #return self.server.Put(block_number, bytes(block_data))
-        return self.server.Put(block_number, block_data)
+        server_block_number = self.virtual_to_physical_block_map(block_number)
+        target_server = server_block_number[0]
+        physical_block_number = server_block_number[1]
+        parity_server = server_block_number[2]
+        get_old_data = self.Get(block_number)
+        get_old_parity = self.Get(parity_server, physical_block_number)
+
+        # Put new data to the server, might not succeed in server down case but new parity will be saved correctly
+        self.Put(target_server, physical_block_number, block_data)
+
+        # If old parity is valid, compute new parity in efficient way
+        if get_old_parity != -1:
+            new_parity = self.byte_xor(get_old_parity, get_old_data)
+            new_parity = self.byte_xor(new_parity, block_data)
+            self.Put(parity_server, new_parity)
+
+        # If old parity is not available, then compute new parity by calling other servers
+        if get_old_parity == -1:
+            result = block_data
+            for server in self.servers:
+                if server != parity_server and server != target_server:
+                    result = self.byte_xor(result, self.Get(server, physical_block_number))
+
+            self.Put(parity_server, result)
 
     ## Get: interface to read a raw block of data from block indexed by block number
     ## Equivalent to the textbook's BLOCK_NUMBER_TO_BLOCK(b)
@@ -95,7 +134,19 @@ class DiskBlocks():
     def Get(self, block_number):
 
         logging.debug('Get: ' + str(block_number))
-        return bytearray(self.server.Get(block_number))
+        server_block_number = self.virtual_to_physical_block_map(block_number)
+        target_server = server_block_number[0]
+        physical_block_number = server_block_number[1]
+
+        block_data = self.Get(target_server, physical_block_number)
+
+        if block_data == -1:
+            block_data = bytearray(BLOCK_SIZE)
+            for server in self.servers:
+                if server != target_server:
+                    block_data = self.byte_xor(block_data, self.Get(server, physical_block_number))
+
+        return block_data
 
     def ReadSetBlock(self, block_number, data):
         logging.debug('ReadSetBlock: ' + str(block_number))
@@ -185,6 +236,30 @@ class DiskBlocks():
         logging.info('#### Raw disk blocks: ' + tag)
         for i in range(min, max):
             logging.info('Block [' + str(i) + '] : ' + str((self.Get(i)).hex()))
+
+    # return array containing the target server, pysical block number and the parity server
+    def virtual_to_physical_block_map(self, block_number):
+        server_block_number = []
+        total_server = len(self.server)
+        physical_block_number = block_number // (total_server - 1)
+        server = physical_block_number % (total_server - 1)
+        parity_server = total_server - 1 - (physical_block_number % total_server)
+
+        if parity_server <= server:
+            server = server + 1
+
+        server_block_number.append(server)
+        server_block_number.append(physical_block_number)
+        server_block_number.append(parity_server)
+
+        return server_block_number
+
+    # return bytearray containing the xor of two byte arrays
+    def byte_xor(self, b1, b2):
+        result = bytearray()
+        for b1, b2 in zip(b1, b2):
+            result.append(b1 ^ b2)
+        return result
 
 
 #### INODE LAYER
