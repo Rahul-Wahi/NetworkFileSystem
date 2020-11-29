@@ -5,6 +5,7 @@ import xmlrpc.client
 import base64
 import pickle, logging
 import sys
+import hashlib
 from memoryfs_client import BLOCK_SIZE, TOTAL_NUM_BLOCKS
 
 
@@ -14,6 +15,7 @@ class DiskBlocks():
     def __init__(self):
         # This class stores the raw block array
         self.block = []
+        self.checksum = []
         self.LOCKED = "LOCKED"
         self.UNLOCKED = "UNLOCKED"
         self.lock = threading.Lock()
@@ -21,6 +23,7 @@ class DiskBlocks():
         for i in range(0, TOTAL_NUM_BLOCKS):
             putdata = bytearray(BLOCK_SIZE)
             self.block.insert(i, putdata)
+            self.checksum.insert(i, hashlib.md5(bytes(putdata)).hexdigest())
 
     def ReadSetBlock(self, block_number, data):
         self.lock.acquire()
@@ -50,6 +53,7 @@ class DiskBlocks():
             putdata = bytearray(block_data.ljust(BLOCK_SIZE, b'\x00'))
             # Write block
             self.block[block_number] = putdata
+            self.checksum[block_number] = hashlib.md5(bytes(putdata)).hexdigest()
             return 0
         else:
             logging.error('Put: Block out of range: ' + str(block_number))
@@ -62,7 +66,10 @@ class DiskBlocks():
         logging.debug('Get: ' + str(block_number))
         if block_number in range(0, TOTAL_NUM_BLOCKS):
             # logging.debug ('\n' + str((self.block[block_number]).hex()))
-            return self.block[block_number]
+            if hashlib.md5(bytes(self.block[block_number])).digest().hex() == self.checksum[block_number]:
+                return self.block[block_number]
+            else:
+                return -1
 
         logging.error('Get: Block number larger than TOTAL_NUM_BLOCKS: ' + str(block_number))
         quit()
