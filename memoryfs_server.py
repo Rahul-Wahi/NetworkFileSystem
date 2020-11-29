@@ -4,6 +4,7 @@ import threading
 import xmlrpc.client
 import base64
 import pickle, logging
+import sys
 from memoryfs_client import BLOCK_SIZE, TOTAL_NUM_BLOCKS
 
 
@@ -72,10 +73,12 @@ class RequestHandler(SimpleXMLRPCRequestHandler):
     rpc_paths = ('/RPC2',)
 
 
-# Create server
-with SimpleXMLRPCServer(('localhost', 8000),
-                        requestHandler=RequestHandler, allow_none=True) as server:
+port_number = int(sys.argv[1])
 
+
+# Create server
+with SimpleXMLRPCServer(('localhost', port_number),
+                        requestHandler=RequestHandler, allow_none=True) as server:
     # Initialize file system data
     logging.info('Initializing data structures...')
     RawBlocks = DiskBlocks()
