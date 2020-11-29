@@ -1,5 +1,5 @@
 import pickle, logging
-
+import sys
 from memoryfs_client import *
 
 
@@ -77,9 +77,9 @@ class FSShell():
 
     # implement ln (creates a hard link of target with name 'linkname')
     def ln(self, target, linkname):
-        self.FileObject.ACQUIRE()
+        #self.FileObject.ACQUIRE()
         self.FileObject.Link(target, linkname, self.cwd)
-        self.FileObject.RELEASE()
+        #self.FileObject.RELEASE()
 
     # implement mkdir (create new directory)
     def mkdir(self, dirname):
@@ -89,28 +89,28 @@ class FSShell():
             print("mkdir: cannot create directory: '" + dirname + "' file name exceeds maximum name size")
             return -1
 
-        self.FileObject.ACQUIRE()
+        #self.FileObject.ACQUIRE()
         # Ensure it's not a duplicate - if Lookup returns anything other than -1
         if self.FileObject.Lookup(dirname, self.cwd) != -1:
             print("mkdir: cannot create directory '" + dirname + "': already exists")
-            self.FileObject.RELEASE()
+            #self.FileObject.RELEASE()
             return -1
 
         # Find if there is an available inode
         inode_position = self.FileObject.FindAvailableInode()
         if inode_position == -1:
             print("mkdir: cannot create directory: no free inode available")
-            self.FileObject.RELEASE()
+            #self.FileObject.RELEASE()
             return -1
 
         # Find available slot in directory data block
         fileentry_position = self.FileObject.FindAvailableFileEntry(self.cwd)
         if fileentry_position == -1:
             print("mkdir: cannot create directory: no entry available for another object")
-            self.FileObject.RELEASE()
+            #self.FileObject.RELEASE()
             return -1
         self.FileObject.Create(self.cwd, dirname, INODE_TYPE_DIR)
-        self.FileObject.RELEASE()
+        #self.FileObject.RELEASE()
 
     # implement create (create new file)
     def create(self, filename):
@@ -121,39 +121,39 @@ class FSShell():
             print("create: cannot create file: '" + filename + "' file name exceeds maximum name size")
             return -1
 
-        self.FileObject.ACQUIRE()
+        #self.FileObject.ACQUIRE()
         # Ensure it's not a duplicate - if Lookup returns anything other than -1
         if self.FileObject.Lookup(filename, self.cwd) != -1:
             print("create: cannot create file '" + filename + "': already exists")
-            self.FileObject.RELEASE()
+            #self.FileObject.RELEASE()
             return -1
 
         # Find if there is an available inode
         inode_position = self.FileObject.FindAvailableInode()
         if inode_position == -1:
             print("create: cannot create file: no free inode available")
-            self.FileObject.RELEASE()
+            #self.FileObject.RELEASE()
             return -1
 
         # Find available slot in directory data block
         fileentry_position = self.FileObject.FindAvailableFileEntry(self.cwd)
         if fileentry_position == -1:
             print("create: cannot create file: no entry available for another object")
-            self.FileObject.RELEASE()
+            #self.FileObject.RELEASE()
             return -1
 
         self.FileObject.Create(self.cwd, filename, INODE_TYPE_FILE)
-        self.FileObject.RELEASE()
+        #self.FileObject.RELEASE()
 
     # implement append (append string to the end of existing file)
     def append(self, filename, data):
-        self.FileObject.ACQUIRE()
+        #self.FileObject.ACQUIRE()
         filename = self.stripSeperator(filename)
         file_inode_number = self.FileObject.Lookup(filename, self.cwd)
 
         if file_inode_number == -1:
             print("append: Error: " + filename + " does not exist")
-            self.FileObject.RELEASE()
+            #self.FileObject.RELEASE()
             return -1
 
         file_inode = InodeNumber(self.FileObject.RawBlocks, file_inode_number)
@@ -161,7 +161,7 @@ class FSShell():
 
         if file_inode.inode.type != INODE_TYPE_FILE:
             print("append: Error: " + filename + " not a file")
-            self.FileObject.RELEASE()
+            #self.FileObject.RELEASE()
             return -1
 
 
@@ -170,7 +170,7 @@ class FSShell():
         data_bytearray = bytes(data, 'utf-8')
 
         bytes_written = self.FileObject.Write(file_inode_number, offset, data_bytearray)
-        self.FileObject.RELEASE()
+        #self.FileObject.RELEASE()
         if bytes_written == -1:
             print("append: can not append: space not available\n")
             return -1
@@ -228,13 +228,18 @@ if __name__ == "__main__":
     # Initialize file for logging
     # Changer logging level to INFO to remove debugging messages
     logging.basicConfig(filename='memoryfs.log', filemode='w', level=logging.DEBUG)
+    number_of_servers = int(sys.argv[1])
+    server_url_list = []
+    for i in range(0, number_of_servers):
+        server_info = sys.argv[i + 2].strip()
+        server_url_list.append("http://" + server_info)
 
     # Replace with your UUID, encoded as a byte array
     UUID = b'\x12\x34\x56\x78'
     server_url = 'http://localhost:8000'
     # Initialize file system data
     logging.info('Initializing data structures...')
-    RawBlocks = DiskBlocks(server_url)
+    RawBlocks = DiskBlocks(server_url_list)
     # Load blocks from dump file
     RawBlocks.InitializeBlocks(False, UUID)
     #
