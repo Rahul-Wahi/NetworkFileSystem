@@ -8,7 +8,7 @@ import sys
 import hashlib
 from memoryfs_client import BLOCK_SIZE, TOTAL_NUM_BLOCKS
 
-
+damaged_block = None
 #### BLOCK LAYER
 
 class DiskBlocks():
@@ -64,6 +64,9 @@ class DiskBlocks():
 
     def Get(self, block_number):
         logging.debug('Get: ' + str(block_number))
+        if damaged_block == block_number:
+            return -1
+
         if block_number in range(0, TOTAL_NUM_BLOCKS):
             # logging.debug ('\n' + str((self.block[block_number]).hex()))
             if hashlib.md5(bytes(self.block[block_number])).digest().hex() == self.checksum[block_number]:
@@ -81,6 +84,11 @@ class RequestHandler(SimpleXMLRPCRequestHandler):
 
 
 port_number = int(sys.argv[1])
+
+if len(sys.argv) > 2:
+    damaged_block = int(sys.argv[2])
+
+
 
 
 # Create server
