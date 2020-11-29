@@ -97,13 +97,15 @@ class DiskBlocks():
     def Get_RPC(self, server_number, physical_block_number):
         logging.debug(
             'Get: server_number ' + str(server_number) + ' physical block number ' + str(physical_block_number))
-        block_data = self.servers[server_number].Get(physical_block_number)
-        # print(block_data)
-        return bytearray(block_data)
-        # try:
-        #     return self.servers[server_number].Get(block_number)
-        # except:
-        #     return -1
+        #return bytearray(self.servers[server_number].Get(physical_block_number))
+        try:
+            block_data = self.servers[server_number].Get(physical_block_number)
+            if block_data != -1:
+                return bytearray(self.servers[server_number].Get(physical_block_number))
+            return block_data
+        except Exception as e:
+            print(e)
+            return -1
 
     def Put(self, block_number, block_data):
         logging.debug(
@@ -127,7 +129,7 @@ class DiskBlocks():
         # If old parity is not available, then compute new parity by calling other servers
         if get_old_parity == -1:
             result = block_data
-            for server in self.servers:
+            for server in range(len(self.servers)):
                 if server != parity_server and server != target_server:
                     result = self.byte_xor(result, self.Get_RPC(server, physical_block_number))
 
@@ -147,7 +149,7 @@ class DiskBlocks():
 
         if block_data == -1:
             block_data = bytearray(BLOCK_SIZE)
-            for server in self.servers:
+            for server in range(len(self.servers)):
                 if server != target_server:
                     block_data = self.byte_xor(block_data, self.Get_RPC(server, physical_block_number))
 
