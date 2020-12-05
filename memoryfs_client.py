@@ -104,7 +104,8 @@ class DiskBlocks():
                 return bytearray(block_data)
             return block_data
         except Exception as e:
-            print(e)
+            logging.debug('Get: server_number ' + str(server_number)
+                          + ' physical block number ' + str(physical_block_number) + "error " + str(e))
             return -1
 
     def Put(self, block_number, block_data):
