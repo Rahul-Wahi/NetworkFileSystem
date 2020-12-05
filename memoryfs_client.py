@@ -101,7 +101,7 @@ class DiskBlocks():
         try:
             block_data = self.servers[server_number].Get(physical_block_number)
             if block_data != -1:
-                return bytearray(self.servers[server_number].Get(physical_block_number))
+                return bytearray(block_data)
             return block_data
         except Exception as e:
             print(e)
@@ -196,9 +196,9 @@ class DiskBlocks():
             #   Free block bitmap: All blocks start free, so safe to initialize with zeroes
             #   Inode table: zero indicates an invalid inode, so also safe to initialize with zeroes
             #   Data blocks: safe to init with zeroes
-            zeroblock = bytearray(BLOCK_SIZE)
-            for i in range(FREEBITMAP_BLOCK_OFFSET, TOTAL_NUM_BLOCKS):
-                self.Put(i, zeroblock)
+            # zeroblock = bytearray(BLOCK_SIZE)
+            # for i in range(FREEBITMAP_BLOCK_OFFSET, TOTAL_NUM_BLOCKS):
+            #     self.Put(i, zeroblock)
         else:
             self.LoadFromDisk(prefix)
             return 1
