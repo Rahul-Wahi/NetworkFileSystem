@@ -241,7 +241,7 @@ if __name__ == "__main__":
     logging.info('Initializing data structures...')
     RawBlocks = DiskBlocks(server_url_list)
     # Load blocks from dump file
-    RawBlocks.InitializeBlocks(False, UUID)
+    RawBlocks.InitializeBlocks(True, UUID)
     #
     # # Show file system information and contents of first few blocks
     RawBlocks.PrintFSInfo()
