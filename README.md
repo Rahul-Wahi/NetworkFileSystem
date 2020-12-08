@@ -1,5 +1,6 @@
 # NetworkFileSystem
 **Introduction:** This project is about implementing network file system (NFS). NFS allows clients to access data over network much like local storage is accessed.
+
 **Problem Statement:** As the data is coming over network, accessing data from server is expensive and if the server is down or any error occurs at server then client won’t get the correct data. Also, as the multiple clients are access the same data from server it can overload a single server. Some efficient way of data access, error detection and error recovery mechanism is needed for NFS
 **Goal:** Goal of this project is to distribute data across multiple data servers to
 1.	To reduce load on servers
